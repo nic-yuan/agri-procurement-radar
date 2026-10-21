@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>农产品采购决策台</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --line:#e3e8ef;
+  --text:#1f2328; --muted:#6b7280; --sub:#8b949e;
+  --brand:#0f7b5f; --brand-soft:#e6f4ef;
+  --up:#d93025; --up-soft:#fdecea;
+  --down:#1a8a45; --down-soft:#e8f5ec;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+  --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px}
+
+/* ---------------- header ---------------- */
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.hd{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:11px}
+.logo-badge{
+  width:34px;height:34px;border-radius:9px;background:var(--brand);
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.logo h1{font-size:17px;font-weight:650;letter-spacing:-.2px}
+.logo p{font-size:12px;color:var(--sub);margin-top:-1px}
+.hd-right{display:flex;align-items:center;gap:14px}
+.stamp{font-size:12.5px;color:var(--muted);text-align:right;line-height:1.35}
+.stamp b{color:var(--text);font-weight:600}
+.btn{
+  border:1px solid var(--line);background:var(--card);color:var(--text);
+  padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;
+  font-family:inherit;transition:all .15s;white-space:nowrap;
+}
+.btn:hover{background:#f9fafb;border-color:#cbd5e1}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn-primary:hover{background:#0c6a51;border-color:#0c6a51}
+
+/* ---------------- stats ---------------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.stat .k{font-size:12px;color:var(--muted);margin-bottom:7px}
+.stat .v{font-size:26px;font-weight:660;letter-spacing:-.6px;line-height:1.1}
+.stat .u{font-size:13px;font-weight:500;color:var(--muted);margin-left:3px}
+.v-green{color:var(--down)} .v-red{color:var(--up)} .v-warn{color:var(--warn)}
+
+/* ---------------- tabs ---------------- */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.tab{
+  padding:10px 18px;font-size:14px;color:var(--muted);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .15s;font-weight:500;
+  background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;
+}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+.tab .n{
+  display:inline-block;min-width:19px;padding:0 5px;margin-left:6px;font-size:11px;
+  background:#eef1f4;color:var(--muted);border-radius:9px;text-align:center;font-weight:600;
+}
+.tab.on .n{background:var(--brand-soft);color:var(--brand)}
+
+/* ---------------- filters ---------------- */
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{
+  padding:6px 13px;font-size:13px;border:1px solid var(--line);border-radius:16px;
+  background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;font-family:inherit;
+}
+.chip:hover{border-color:#cbd5e1;color:var(--text)}
+.chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:500}
+
+/* ---------------- advice grid ---------------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.acard{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:17px 18px;cursor:pointer;transition:all .16s;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+.acard:hover{border-color:#b9c4d1;transform:translateY(-1px);box-shadow:0 4px 12px rgba(16,24,40,.09)}
+.acard .bar{position:absolute;left:0;top:0;bottom:0;width:3px}
+.acard .top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:11px}
+.pname{font-size:15.5px;font-weight:640;letter-spacing:-.2px}
+.pmeta{font-size:11.5px;color:var(--sub);margin-top:2px}
+.badge{
+  padding:3px 9px;border-radius:6px;font-size:11.5px;font-weight:600;white-space:nowrap;
+}
+.b-low{background:var(--down-soft);color:var(--down)}
+.b-mid{background:#eef2f6;color:#57606a}
+.b-high{background:var(--up-soft);color:var(--up)}
+
+.price{display:flex;align-items:baseline;gap:5px;margin-bottom:3px}
+.price .n{font-size:29px;font-weight:670;letter-spacing:-1px}
+.price .u{font-size:13px;color:var(--muted)}
+
+.act{
+  margin:12px 0;padding:9px 12px;border-radius:8px;background:#f7f9fb;
+  font-size:13px;display:flex;align-items:center;gap:8px;
+}
+.act .m{font-size:15px;font-weight:680;color:var(--brand)}
+.act .t{color:var(--text)}
+
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:7px 12px;margin-top:11px;padding-top:12px;border-top:1px solid #f0f3f6}
+.mt{display:flex;justify-content:space-between;font-size:12px}
+.mt .l{color:var(--sub)}
+.mt .v{font-weight:600;font-variant-numeric:tabular-nums}
+
+.reason{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.5}
+
+/* ---------------- alert list ---------------- */
+.alist{display:flex;flex-direction:column;gap:10px}
+.arow{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 17px;display:flex;align-items:center;gap:15px;cursor:pointer;
+  transition:all .15s;box-shadow:var(--shadow);
+}
+.arow:hover{border-color:#b9c4d1;transform:translateX(2px)}
+.sev{width:4px;align-self:stretch;border-radius:2px;flex-shrink:0}
+.s-red{background:var(--up)} .s-orange{background:#e07b39} .s-yellow{background:#d4a017}
+.aname{font-size:14.5px;font-weight:620;min-width:96px}
+.achg{font-size:17px;font-weight:670;min-width:82px;font-variant-numeric:tabular-nums}
+.c-up{color:var(--up)} .c-down{color:var(--down)}
+.amsg{flex:1;font-size:12.5px;color:var(--muted);line-height:1.45}
+.adate{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---------------- modal ---------------- */
+.mask{
+  position:fixed;inset:0;background:rgba(16,24,40,.42);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:24px;
+  backdrop-filter:blur(2px);
+}
+.mask.on{display:flex}
+.modal{
+  background:var(--card);border-radius:14px;width:100%;max-width:940px;
+  max-height:88vh;overflow:auto;box-shadow:0 20px 48px rgba(16,24,40,.24);
+}
+.mhd{
+  padding:18px 24px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:var(--card);z-index:2;
+}
+.mhd h2{font-size:17px;font-weight:650}
+.mhd .sub{font-size:12px;color:var(--sub);margin-top:2px}
+.x{
+  border:none;background:none;font-size:22px;color:var(--sub);cursor:pointer;
+  line-height:1;padding:4px 8px;border-radius:6px;
+}
+.x:hover{background:#f0f3f6;color:var(--text)}
+.mbd{padding:20px 24px 24px}
+.chart{width:100%;height:380px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:#f7f9fb;border-radius:9px;padding:12px 14px}
+.kpi .k{font-size:11.5px;color:var(--muted);margin-bottom:4px}
+.kpi .v{font-size:19px;font-weight:660;font-variant-numeric:tabular-nums}
+.rangebar{display:flex;gap:6px;margin-bottom:16px}
+.rb{
+  flex:1;padding:7px 12px;border:1px solid var(--line);border-radius:7px;
+  background:var(--card);font-size:12.5px;color:var(--muted);cursor:pointer;font-family:inherit;
+}
+.rb.on{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:500}
+
+.loading{text-align:center;padding:60px;color:var(--sub);font-size:14px}
+.empty{text-align:center;padding:60px;color:var(--sub);font-size:14px}
+.foot{margin:36px 0 24px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--sub);line-height:1.7}
+
+@media (max-width:900px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .arow{flex-wrap:wrap}
+  .amsg{min-width:100%;order:4}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <div class="logo">
+      <div class="logo-badge">🌾</div>
+      <div>
+        <h1>农产品采购决策台</h1>
+        <p>基于新发地批发价格的时机判断与波动预警</p>
+      </div>
+    </div>
+    <div class="hd-right">
+      <div class="stamp" id="stamp">加载中…</div>
+      <button class="btn" id="refreshBtn">刷新</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="stats">
+    <div class="stat"><div class="k">监测品种</div><div class="v" id="s1">—</div></div>
+    <div class="stat"><div class="k">处于低位·建议加量</div><div class="v v-green" id="s2">—</div></div>
+    <div class="stat"><div class="k">处于高位·建议减量</div><div class="v v-red" id="s3">—</div></div>
+    <div class="stat"><div class="k">波动预警</div><div class="v v-warn" id="s4">—</div></div>
+  </section>
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="timing">采购时机建议<span class="n" id="n1">0</span></button>
+    <button class="tab" data-tab="alerts">异常波动预警<span class="n" id="n2">0</span></button>
+  </nav>
+
+  <section id="panel-timing">
+    <div class="filters" id="f1"></div>
+    <div class="grid" id="g1"><div class="loading">正在加载…</div></div>
+  </section>
+
+  <section id="panel-alerts" style="display:none">
+    <div class="filters" id="f2"></div>
+    <div class="alist" id="g2"><div class="loading">正在加载…</div></div>
+  </section>
+
+  <div class="foot">
+    <div><b>数据来源：</b>北京新发地市场官方价格发布（日频，含最低/最高/均价、产地）。数据为批发端大宗交易均价，实际采购价会因规格、账期、物流、损耗等因素高于该值。</div>
+    <div><b>方法说明：</b>时机判断以「往年同期 ±21 天」的季节分位数为主判据（权重 50%），全历史分位数（30%）与近 7 日动量（20%）为辅；预警采用相对品种自身波动率的 Z-score 自适应阈值。本工具不做价格预测，仅回答「当前价格处于历史什么位置」。</div>
+    <div><b>免责：</b>输出结论仅供参考，不构成采购决策依据，请结合自身库存、损耗率与销售节奏综合判断。</div>
+  </section>
+
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="mhd">
+      <div>
+        <h2 id="mtitle">—</h2>
+        <div class="sub" id="msub">—</div>
+      </div>
+      <button class="x" id="closeBtn">&times;</button>
+    </div>
+    <div class="mbd">
+      <div class="rangebar">
+        <button class="rb" data-days="90">近 90 天</button>
+        <button class="rb on" data-days="365">近 1 年</button>
+        <button class="rb" data-days="1095">近 3 年</button>
+      </div>
+      <div class="kpis" id="mkpi"></div>
+      <div class="chart" id="chart"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATS = [
+  {key:'',    label:'全部'},
+  {key:'蔬菜', label:'蔬菜'},
+  {key:'水果', label:'水果'},
+  {key:'肉禽蛋',label:'肉禽蛋'},
+  {key:'水产', label:'水产'}
+];
+
+let CAT1 = '', CAT2 = '', DAYS = 365, CUR = null, chart = null;
+
+const $ = id => document.getElementById(id);
+const pct = v => (v==null? '—' : (v>0?'+':'') + v.toFixed(1) + '%');
+const q   = v => (v==null? '—' : (v*100).toFixed(0) + '%');
+
+function badgeClass(level){
+  if(level==='低位'||level==='偏低') return 'b-low';
+  if(level==='偏高'||level==='高位') return 'b-high';
+  return 'b-mid';
+}
+function barColor(level){
+  if(level==='低位') return 'var(--down)';
+  if(level==='偏低') return '#5cb85c';
+  if(level==='偏高') return '#e07b39';
+  if(level==='高位') return 'var(--up)';
+  return '#cbd5e1';
+}
+
+function renderFilters(el, active, onPick){
+  el.innerHTML = CATS.map(c =>
+    `<button class="chip${c.key===active?' on':''}" data-k="${c.key}">${c.label}</button>`
+  ).join('');
+  el.querySelectorAll('.chip').forEach(b=>{
+    b.onclick = () => onPick(b.dataset.k);
+  });
+}
+
+function renderAdvisories(items){
+  const el = $('g1');
+  if(!items.length){ el.innerHTML = '<div class="empty">当前筛选条件下暂无数据</div>'; return; }
+  el.innerHTML = items.map(a=>`
+    <div class="acard" data-name="${a.prod_name}">
+      <div class="bar" style="background:${barColor(a.level)}"></div>
+      <div class="top">
+        <div>
+          <div class="pname">${a.prod_name}</div>
+          <div class="pmeta">${a.prod_cat}${a.place?' · 产地 '+a.place:''}</div>
+        </div>
+        <span class="badge ${badgeClass(a.level)}">${a.level}</span>
+      </div>
+      <div class="price"><span class="n">${a.current_price}</span><span class="u">元/${a.unit}</span></div>
+      <div class="act"><span class="m">${a.buy_multiplier.toFixed(2)}x</span><span class="t">${a.action}</span></div>
+      <div class="metrics">
+        <div class="mt"><span class="l">同期分位</span><span class="v">${q(a.season_quantile)}</span></div>
+        <div class="mt"><span class="l">历史分位</span><span class="v">${q(a.hist_quantile)}</span></div>
+        <div class="mt"><span class="l">vs 同期中位</span><span class="v ${a.vs_season_median>0?'c-up':'c-down'}">${pct(a.vs_season_median)}</span></div>
+        <div class="mt"><span class="l">近 7 日</span><span class="v ${a.mom_7d>0?'c-up':'c-down'}">${pct(a.mom_7d)}</span></div>
+      </div>
+      <div class="reason">${a.reason}</div>
+    </div>
+  `).join('');
+  el.querySelectorAll('.acard').forEach(c=>{
+    c.onclick = () => openDetail(c.dataset.name);
+  });
+}
+
+function renderAlerts(items){
+  const el = $('g2');
+  if(!items.length){ el.innerHTML = '<div class="empty">近期无异动，行情平稳</div>'; return; }
+  el.innerHTML = items.map(a=>`
+    <div class="arow" data-name="${a.prod_name}">
+      <div class="sev s-${a.severity}"></div>
+      <div class="aname">${a.prod_name}</div>
+      <div class="achg ${a.direction==='up'?'c-up':'c-down'}">${a.change_pct>0?'+':''}${a.change_pct}%</div>
+      <div class="amsg">${a.message}</div>
+      <div class="adate">${a.date}</div>
+    </div>
+  `).join('');
+  el.querySelectorAll('.arow').forEach(c=>{
+    c.onclick = () => openDetail(c.dataset.name);
+  });
+}
+
+async function loadData(){
+  try{
+    const [adv, alr] = await Promise.all([
+      fetch('/api/advisories?limit=200').then(r=>r.json()),
+      fetch('/api/alerts?limit=100').then(r=>r.json())
+    ]);
+
+    const all = adv.items;
+    $('s1').textContent = all.length;
+    $('s2').textContent = all.filter(a=>a.level==='低位'||a.level==='偏低').length;
+    $('s3').textContent = all.filter(a=>a.level==='高位'||a.level==='偏高').length;
+    $('s4').textContent = alr.count;
+    $('n1').textContent = all.length;
+    $('n2').textContent = alr.count;
+
+    const stamp = document.getElementById('stamp');
+
+    renderFilters($('f1'), CAT1, k => { CAT1 = k; applyFilter(); });
+    renderFilters($('f2'), CAT2, k => { CAT2 = k; applyAlertFilter(); });
+
+    window.__ADV = all;
+    window.__ALR = alr.items;
+
+    applyFilter();
+    applyAlertFilter();
+
+    // 数据日期
+    const meta = await fetch('/api/meta').then(r=>r.json());
+    stamp.innerHTML = `数据截至 <b>${meta.meta.last_date}</b><br>${meta.meta.product_count} 个品种 · ${meta.meta.record_count.toLocaleString()} 条记录`;
+  }catch(e){
+    $('g1').innerHTML = '<div class="empty">加载失败：' + e.message + '<br><br>请确认后端服务已启动</div>';
+  }
+}
+
+function applyFilter(){
+  let rows = window.__ADV || [];
+  if(CAT1) rows = rows.filter(a=>a.prod_cat===CAT1);
+  renderAdvisories(rows);
+}
+function applyAlertFilter(){
+  let rows = window.__ALR || [];
+  if(CAT2) rows = rows.filter(a=>a.prod_cat===CAT2);
+  renderAlerts(rows);
+}
+
+// ---------------- detail ----------------
+async function openDetail(name){
+  CUR = name;
+  $('mask').classList.add('on');
+  $('mtitle').textContent = name;
+  $('msub').textContent = '加载中…';
+  await loadChart();
+}
+
+async function loadChart(){
+  if(!CUR) return;
+  try{
+    const d = await fetch(`/api/series?name=${encodeURIComponent(CUR)}&days=${DAYS}`).then(r=>r.json());
+    const pts = d.points || [];
+    if(!pts.length){
+      $('msub').textContent = '暂无数据';
+      return;
+    }
+    $('msub').textContent = `${d.prod_cat||''} · ${d.place?('产地 '+d.place):'—'} · 数据 ${pts.length} 天`;
+
+    const a = d.advice;
+    if(a){
+      $('mkpi').innerHTML = `
+        <div class="kpi"><div class="k">当前价</div><div class="v">${a.current_price}<span style="font-size:12px;color:var(--muted)"> 元/${a.unit}</span></div></div>
+        <div class="kpi"><div class="k">同期分位</div><div class="v">${q(a.season_quantile)}</div></div>
+        <div class="kpi"><div class="k">建议采购</div><div class="v" style="color:var(--brand)">${a.buy_multiplier.toFixed(2)}x</div></div>
+        <div class="kpi"><div class="k">判断</div><div class="v" style="font-size:16px">${a.level}</div></div>`;
+    }
+
+    const xs = pts.map(p=>p.d);
+    const ys = pts.map(p=>p.p);
+
+    if(!chart) chart = echarts.init($('chart'));
+    chart.setOption({
+      grid:{left:56,right:24,top:28,bottom:52},
+      tooltip:{trigger:'axis', formatter: p => {
+        const v = p[0];
+        return `${v.axisValue}<br/><b>${v.data} 元/${d.unit||'斤'}</b>`;
+      }},
+      xAxis:{
+        type:'category', data:xs, boundaryGap:false,
+        axisLine:{lineStyle:{color:'#e3e8ef'}},
+        axisLabel:{color:'#8b949e',fontSize:11,hideOverlap:true}
+      },
+      yAxis:{
+        type:'value', scale:true,
+        name:`元/${d.unit||'斤'}`, nameTextStyle:{color:'#8b949e',fontSize:11},
+        axisLabel:{color:'#8b949e',fontSize:11},
+        splitLine:{lineStyle:{color:'#f0f3f6'}}
+      },
+      dataZoom:[{type:'inside'},{type:'slider',height:18,bottom:14,borderColor:'#e3e8ef'}],
+      series:[{
+        type:'line', data:ys, smooth:true, symbol:'none',
+        lineStyle:{width:2, color:'#0f7b5f'},
+        areaStyle:{
+          color:new echarts.graphic.LinearGradient(0,0,0,1,[
+            {offset:0,color:'rgba(15,123,95,.20)'},
+            {offset:1,color:'rgba(15,123,95,.02)'}
+          ])
+        }
+      }]
+    }, true);
+    chart.resize();
+  }catch(e){
+    $('msub').textContent = '加载失败：' + e.message;
+  }
+}
+
+function closeModal(){ $('mask').classList.remove('on'); }
+
+$('closeBtn').onclick = closeModal;
+$('mask').onclick = e => { if(e.target.id==='mask') closeModal(); };
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+$('refreshBtn').onclick = async () => {
+  const b = $('refreshBtn'); b.disabled = true; b.textContent='刷新中…';
+  try{ await fetch('/api/refresh'); }catch(e){}
+  location.reload();
+};
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    const k = t.dataset.tab;
+    $('panel-timing').style.display = k==='timing'?'':'none';
+    $('panel-alerts').style.display = k==='alerts'?'':'none';
+  };
+});
+
+document.querySelectorAll('.rb').forEach(b=>{
+  b.onclick = () => {
+    document.querySelectorAll('.rb').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    DAYS = parseInt(b.dataset.days,10);
+    loadChart();
+  };
+});
+
+window.addEventListener('resize', ()=>{ if(chart) chart.resize(); });
+
+loadData();
+</script>
+</body>
+</html>

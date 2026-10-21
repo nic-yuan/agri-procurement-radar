@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 环境 / 编辑器
+.env
+.idea/
+.vscode/
+.DS_Store
+
+# SQLite 数据库：由 scraper 重建，不入库（data/agri.db 约 9MB）
+data/*.db
+data/*.db-journal
+data/*.sqlite
+
+# 运行产出的临时抓取文件
+*.log
